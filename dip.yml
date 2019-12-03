@@ -1,0 +1,23 @@
+version: '2'
+
+compose:
+  files:
+    - docker-compose.yml
+
+interaction:
+  # bash:
+  #   service: grafana
+  #   command: /bin/bash
+  #   compose_run_options: [no-deps]
+
+  grafana-cli:
+    service: grafana
+    compose_run_options: [no-deps, service-ports]
+
+  bash:
+    service: influxdb
+    command: /bin/bash
+
+provision:
+  - dip compose down --volumes
+  - dip compose up

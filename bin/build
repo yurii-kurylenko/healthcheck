@@ -1,0 +1,23 @@
+#!/bin/bash
+set -a && source .env
+
+TELEGRAF_VERSION=1.12
+INFLUXDB_VERSION=1.7
+GRAFANA_VERSION=6.5.0-ubuntu
+
+# telegraf
+docker build -t ${REGISTRY_URL}/telegraf:${BRANCH}  --build-arg TELEGRAF_VERSION=${TELEGRAF_VERSION} -f ./telegraf/Dockerfile telegraf
+
+# influxdb
+docker build -t ${REGISTRY_URL}/influxdb:${BRANCH}  --build-arg INFLUXDB_VERSION=${INFLUXDB_VERSION} -f ./influxdb/Dockerfile influxdb
+
+# grafana
+docker build -t ${REGISTRY_URL}/grafana:${BRANCH}  --build-arg GRAFANA_VERSION=${GRAFANA_VERSION}  -f ./grafana/Dockerfile grafana
+
+# nginx
+docker build -t ${REGISTRY_URL}/nginx:${BRANCH}  -f ./nginx/Dockerfile nginx
+
+docker push ${REGISTRY_URL}/telegraf
+docker push ${REGISTRY_URL}/influxdb
+docker push ${REGISTRY_URL}/grafana
+docker push ${REGISTRY_URL}/nginx

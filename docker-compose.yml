@@ -1,0 +1,78 @@
+version: "3"
+
+services:
+    influxdb:
+        build:
+            context: ./influxdb
+            args:
+                INFLUXDB_VERSION: "1.7"
+        container_name: pliano_healthcheck_influxdb
+        ports:
+            - ${INFLUXDB_PORT}:${INFLUXDB_PORT}
+        volumes:
+            - influxdbdata:/var/lib/influxdb
+        restart: always
+        env_file:
+            - .env
+        networks:
+            - backend
+            - frontend
+
+    telegraf:
+        build:
+            context: ./telegraf
+            args:
+                TELEGRAF_VERSION: '1.12'
+        container_name: pliano_healthcheck_telegraf
+        depends_on:
+            - influxdb
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            # - /proc:/hostfs/proc
+        privileged: true
+        restart: always
+        env_file:
+            - .env
+        networks:
+            - backend
+
+    grafana:
+        build:
+            context: ./grafana
+            args:
+                GRAFANA_VERSION: '6.5.0-ubuntu'
+        container_name: pliano_healthcheck_grafana
+        ports:
+            - ${GRAFANA_PORT}:${GRAFANA_PORT}
+        depends_on:
+            - influxdb
+        volumes:
+            - /var/lib/grafana
+            - /var/log/grafana
+            - /var/lib/grafana/plugins
+        restart: always
+        env_file:
+            - .env
+        networks:
+            - frontend
+
+    nginx:
+        image: 'nginx'
+        volumes:
+            - ./nginx/nginx.conf.local:/etc/nginx/nginx.conf:ro
+        command: [nginx-debug, '-g', 'daemon off;']
+        environment:
+            - NGINX_HOST=localhost
+            - NGINX_PORT=80
+        ports:
+            - 8080:80
+        depends_on:
+            - grafana
+        networks:
+            - frontend
+
+volumes:
+    influxdbdata:
+networks:
+    backend:
+    frontend:

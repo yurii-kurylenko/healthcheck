@@ -1,0 +1,78 @@
+version: '3.3'
+
+networks:
+  proxy:
+    external:
+      name: proxy
+  app:
+
+volumes:
+  influxdbdata:
+
+services:
+  influxdb:
+    image: "${REGISTRY_HOST}/${PROJECT_IMAGE}/influxdb:${PROJECT_TAG}"
+    ports:
+      - ${INFLUXDB_PORT}:${INFLUXDB_PORT}
+    volumes:
+        - influxdbdata:/var/lib/influxdb
+    restart: always
+    environment:
+      INFLUXDB_HOST: ${INFLUXDB_HOST}
+      INFLUXDB_PORT: ${INFLUXDB_PORT}
+      INFLUXDB_DATABASE: ${INFLUXDB_DATABASE}
+      INFLUXDB_ADMIN_USER: ${INFLUXDB_ADMIN_USER}
+      INFLUXDB_ADMIN_PASSWORD: ${INFLUXDB_ADMIN_PASSWORD}
+      INFLUXDB_DATABASE_DURATION: ${INFLUXDB_DATABASE_DURATION}
+    networks:
+      - app
+      - proxy
+
+  telegraf:
+    image: "${REGISTRY_HOST}/${PROJECT_IMAGE}/telegraf:${PROJECT_TAG}"
+    volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - /proc:/hostfs/proc
+    privileged: true
+    restart: always
+    environment:
+      INFLUXDB_HOST: ${INFLUXDB_HOST}
+      INFLUXDB_PORT: ${INFLUXDB_PORT}
+      INFLUXDB_DATABASE: ${INFLUXDB_DATABASE}
+      TELEGRAF_HOST: ${TELEGRAF_HOST}
+    networks:
+      - app
+
+  grafana:
+    image: "${REGISTRY_HOST}/${PROJECT_IMAGE}/grafana:${PROJECT_TAG}"
+    restart: always
+    environment:
+      INFLUXDB_HOST: ${INFLUXDB_HOST}
+      INFLUXDB_PORT: ${INFLUXDB_PORT}
+      INFLUXDB_DATABASE: ${INFLUXDB_DATABASE}
+      GRAFANA_PORT: ${GRAFANA_PORT}
+      GRAFANA_USER: ${GRAFANA_USER}
+      GRAFANA_PASSWORD: ${GRAFANA_PASSWORD}
+      GRAFANA_PLUGINS_ENABLED: "true"
+      GRAFANA_PLUGINS: grafana-piechart-panels
+    networks:
+      - app
+
+  nginx:
+    image: "${REGISTRY_HOST}/${PROJECT_IMAGE}/nginx:${PROJECT_TAG}"
+    networks:
+      - app
+      - proxy
+    environment:
+      VIRTUAL_HOST: ${VIRTUAL_HOST}
+      PROJECT_NAME: ${PROJECT_NAME}
+      GRAFANA_PORT: ${GRAFANA_PORT}
+    deploy:
+      replicas: 1
+      labels:
+        traefik.port: 80
+        traefik.docker.network: proxy
+        traefik.backend: "${PROJECT_NAME}_nginx"
+        traefik.frontend.rule: "Host:${VIRTUAL_HOST}"
+        traefik.acme.domains: "${VIRTUAL_HOST}"
+        traefik.frontend.headers.SSLRedirect: 'true'
