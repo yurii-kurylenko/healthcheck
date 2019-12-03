@@ -49,3 +49,9 @@ $ docker-compose up -d
     3. Reboot your machine
 
 Then access graphana at `http://localhost:3000`.
+
+### Bonus
+
+* docker-cloud.staging.yml - Docker Swarm Setup
+* Jenkinsfile and build script - custom Jenkins pipeline (won't work out of the box)
+* dip.yml - integration with https://github.com/bibendi/dip
